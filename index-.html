@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>IGNIS 환원당 실험</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: single reading column like a lab handout; Benedict colour scale (Cu2+ blue → Cu2O brick) is the page's signature rail. */
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --ink:#17202b; --muted:#5a6775; --line:#d9e0e7; --soft:#eef2f6;
+  --accent:#1f5fa8; --copper:#b4502a; --ok:#2e7d55; --warn:#a86a12;
+  --g1:#2f6fbf; --g2:#23905f; --g3:#cc6f22; --g4:#8452c0;
+  --font-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1419; --surface:#161d25; --ink:#e5ebf1; --muted:#95a3b2; --line:#2a3440; --soft:#1d2630;
+  --accent:#73a7e6; --copper:#e2825a; --ok:#5cc08b; --warn:#e0a54a;
+  --g1:#6fa3e8; --g2:#55c08c; --g3:#ee9a52; --g4:#b38ae8; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1419; --surface:#161d25; --ink:#e5ebf1; --muted:#95a3b2; --line:#2a3440; --soft:#1d2630;
+  --accent:#73a7e6; --copper:#e2825a; --ok:#5cc08b; --warn:#e0a54a;
+  --g1:#6fa3e8; --g2:#55c08c; --g3:#ee9a52; --g4:#b38ae8; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15.5px;line-height:1.7;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:860px;margin:0 auto}
+h1,h2,h3{text-wrap:balance;line-height:1.3;margin:0}
+h1{font-size:clamp(1.7rem,4.5vw,2.4rem);font-weight:700;letter-spacing:-0.02em}
+h2{font-size:1.4rem;font-weight:700;letter-spacing:-0.01em}
+h3{font-size:1.06rem;font-weight:700}
+p{margin:0}
+.num,.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header.top{padding-block:36px 20px;display:grid;gap:14px}
+.eyebrow{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.lede{color:var(--muted);max-width:62ch}
+.scale{display:grid;grid-template-columns:repeat(5,1fr);border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.scale div{padding:8px 8px 6px;font-size:.74rem;line-height:1.35;color:#fff;font-weight:500}
+.scale div span{display:block;font-family:var(--font-mono);opacity:.9;font-weight:400}
+.scale-cap{font-size:.78rem;color:var(--muted)}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);
+  margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding-inline:max(16px,env(safe-area-inset-left,0px));}
+nav.toc .in{max-width:860px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;padding-block:10px;scrollbar-width:none}
+nav.toc a{flex:none;text-decoration:none;color:var(--muted);font-size:.84rem;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+nav.toc a:hover{color:var(--ink);border-color:var(--muted)}
+
+section{padding-block:40px 8px;display:grid;gap:16px;scroll-margin-top:60px}
+.sec-head{display:flex;align-items:baseline;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:8px}
+.sec-head .no{font-family:var(--font-mono);font-size:.85rem;color:var(--copper)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px;display:grid;gap:12px;min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+ul,ol{margin:0;padding-left:1.3em;display:grid;gap:4px}
+.note{font-size:.88rem;color:var(--muted)}
+.callout{border-left:3px solid var(--copper);background:var(--soft);padding:10px 14px;border-radius:0 6px 6px 0;font-size:.93rem}
+.callout.blue{border-left-color:var(--accent)}
+.tag{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:4px;background:var(--soft);color:var(--muted);margin-right:6px;vertical-align:2px}
+.formula{font-family:var(--font-mono);background:var(--soft);border-radius:6px;padding:10px 12px;font-size:.88rem;overflow-x:auto}
+
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:.78rem;color:var(--muted);font-weight:500;background:var(--soft);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.r{text-align:right}
+
+.hyp{display:grid;grid-template-columns:auto 1fr;gap:4px 12px}
+.hyp b{font-family:var(--font-mono);color:var(--copper)}
+
+/* recording */
+.groupbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.gbtn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:.9rem;padding:6px 14px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.gbtn .dot{width:10px;height:10px;border-radius:50%}
+.gbtn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.status{font-size:.82rem;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.status .pill{padding:2px 8px;border-radius:999px;background:var(--soft)}
+.toggle{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+.rec-input{font:inherit;font-family:var(--font-mono);font-size:.88rem;width:72px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink)}
+.rec-input:disabled{opacity:.7}
+.cpick{width:40px;height:30px;padding:0;border:1px solid var(--line);border-radius:5px;background:var(--surface);cursor:pointer}
+.cpick:disabled{cursor:default}
+.tube{width:14px;height:34px;border:1.5px solid var(--muted);border-top:0;border-radius:0 0 8px 8px;background:transparent;position:relative;overflow:hidden;flex:none}
+.tube i{position:absolute;inset:auto 0 0 0;height:70%;display:block}
+.tubes{display:flex;flex-wrap:wrap;gap:14px 16px;align-items:flex-end;padding:6px 2px}
+.tubes figure{margin:0;display:grid;justify-items:center;gap:4px;font-size:.72rem;color:var(--muted);text-align:center;width:52px}
+.tubes .big{width:22px;height:56px;border-radius:0 0 12px 12px}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font-family:var(--font-body);font-size:12px}
+.chart .val{fill:var(--ink);font-family:var(--font-mono);font-size:11px}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .axis{stroke:var(--muted);stroke-width:1}
+.empty{font-size:.88rem;color:var(--muted);padding:14px;border:1px dashed var(--line);border-radius:6px;text-align:center}
+.fitline{font-size:.85rem}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+.ws{display:grid;gap:14px}
+.ws label{display:grid;gap:6px;font-size:.95rem}
+.ws textarea{font:inherit;font-size:.92rem;min-height:72px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);resize:vertical;width:100%}
+.topic{display:grid;gap:4px;padding-block:10px;border-bottom:1px solid var(--line)}
+.topic:last-child{border-bottom:0}
+.topic h3{font-size:1rem}
+.topic p{font-size:.9rem;color:var(--muted)}
+footer{padding-block:40px 0;font-size:.8rem;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">IGNIS 화학동아리 · 세션 4 · 실험 2</div>
+  <h1>환원당은 어디에서, 얼마나 생기는가</h1>
+  <p class="lede">시판 음료, 조리한 감자·고구마, 타액으로 분해되는 전분에서 환원당을 베네딕트 반응으로 검출하고, 시험관 색의 R값으로 농도를 추정합니다. 4모둠이 같은 세 실험을 수행하고 이 페이지에 결과를 기록합니다.</p>
+  <div class="scale" aria-label="베네딕트 반응 색 변화와 대략적인 환원당 농도">
+    <div style="background:#2f62b0">청색<span>0%</span></div>
+    <div style="background:#3f8a6e">녹색<span>~0.1–0.5%</span></div>
+    <div style="background:#a59a2a">황색<span>~0.5–1%</span></div>
+    <div style="background:#cf7a24">주황<span>~1–1.5%</span></div>
+    <div style="background:#9b3a1f">적갈색<span>≥2%</span></div>
+  </div>
+  <p class="scale-cap">베네딕트 반정량 색 기준(근사값). 붉은색으로 갈수록 R값이 커지며, 이 실험은 R값을 표준 곡선에 대입해 농도를 추정합니다.</p>
+</header>
+
+<nav class="toc" aria-label="목차"><div class="in">
+  <a href="#guide">실험 안내</a><a href="#hypo">가설</a><a href="#questions">탐구 질문</a><a href="#procedure">실험 절차</a><a href="#record">결과 기록</a><a href="#analysis">결과 해석</a><a href="#worksheet">학습지</a><a href="#further">심화 탐구</a><a href="#info">준비물·안전</a>
+</div></nav>
+
+<!-- 1 -->
+<section id="guide">
+  <div class="sec-head"><span class="no">01</span><h2>실험 안내</h2></div>
+  <p>베네딕트 시약의 Cu²⁺(청색)는 알칼리 조건에서 가열하면 환원당의 알데하이드기에 의해 환원되어 Cu₂O(적갈색) 침전이 됩니다. 환원당이 많을수록 색이 청색 → 녹색 → 황색 → 주황 → 적갈색으로 변하고, 사진의 R(빨강) 값이 커집니다.</p>
+  <div class="formula">Cu²⁺ (청색, 착이온) + 환원당 + OH⁻ → Cu₂O ↓ (적갈색) + 산화된 당</div>
+  <div class="grid2">
+    <div class="card"><h3>환원당</h3><p class="note">포도당, 과당, 엿당, 유당. 유리된 알데하이드기(또는 이성질화로 생기는 것)가 있어 반응합니다.</p></div>
+    <div class="card"><h3>비환원당</h3><p class="note">자당(설탕), 전분. 반응하지 않습니다. 라벨 "당류"에는 자당이 포함되므로 측정값과 차이가 생깁니다.</p></div>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>실험</th><th>대상</th><th>무엇을 비교하나</th><th>시간</th></tr></thead>
+    <tbody>
+      <tr><td>① 시판 음료</td><td>콜라, 오렌지주스, 이온음료, 우유, 두유, 무가당 음료</td><td>측정 환원당 vs 라벨 당류</td><td class="num">45분</td></tr>
+      <tr><td>② 조리 조건</td><td>감자, 고구마 × 생것·삶기 10분·삶기 25분·굽기</td><td>조리법에 따른 환원당 변화</td><td class="num">35분</td></tr>
+      <tr><td>③ 소화 시뮬레이션</td><td>1% 전분 + 타액 아밀레이스, 37°C</td><td>반응 시간에 따른 환원당 증가</td><td class="num">40분 + 60분 반응</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 2 -->
+<section id="hypo">
+  <div class="sec-head"><span class="no">02</span><h2>가설</h2></div>
+  <div class="card hyp">
+    <b>H1</b><p>자당이 주된 당인 음료(콜라·오렌지주스·이온음료·두유)는 측정 환원당이 라벨 당류보다 낮고, 유당이 주된 당인 우유는 라벨값과 가까울 것이다.</p>
+    <b>H2</b><p>고구마는 가열 중 자체 β-아밀레이스가 전분을 엿당으로 분해해 조리 후 환원당이 증가하고, 감자는 변화가 작을 것이다. 삶는 시간이 길면 당이 물로 빠져나가 감소할 수 있다.</p>
+    <b>H3</b><p>타액 아밀레이스와 반응한 시간이 길수록 환원당이 증가하다가, 기질이 줄어들면서 증가 속도가 느려질 것이다.</p>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="questions">
+  <div class="sec-head"><span class="no">03</span><h2>실험이 답해야 할 질문</h2></div>
+  <div class="grid2">
+    <div class="card"><h3>① 시판 음료</h3><ol>
+      <li>음료별 측정 환원당은 라벨 당류의 몇 %인가?</li>
+      <li>라벨과의 차이는 음료의 주된 당 종류로 설명되는가?</li>
+      <li>"무가당" 음료에서도 환원당이 검출되는가?</li></ol></div>
+    <div class="card"><h3>② 조리 조건</h3><ol>
+      <li>같은 채소에서 조리법에 따라 환원당은 어떻게 달라지는가?</li>
+      <li>감자와 고구마의 변화 방향과 크기는 같은가?</li>
+      <li>삶는 시간(10분 vs 25분)은 결과에 어떤 영향을 주는가?</li></ol></div>
+    <div class="card"><h3>③ 소화 시뮬레이션</h3><ol>
+      <li>환원당은 시간에 따라 어떤 곡선으로 증가하는가?</li>
+      <li>전체 증가량의 절반에 도달하는 시간은 언제인가?</li>
+      <li>대조군 A·B는 결과 해석에 어떤 기준을 주는가?</li></ol></div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="procedure">
+  <div class="sec-head"><span class="no">04</span><h2>실험 절차</h2></div>
+  <div class="callout blue">③은 60분 반응이 필요하므로 가장 먼저 시작하고, 기다리는 동안 ①과 ②를 진행합니다. 역할: 타이머·③ 담당, 희석·분주, 가열·촬영, 기록 각 1명.</div>
+  <div class="tbl"><table>
+    <thead><tr><th>시간</th><th>진행</th></tr></thead>
+    <tbody>
+      <tr><td class="num">0–10분</td><td>③ 타액 희석액 제조, 전분 용액 37°C 예열, 0분 시험관 처리, 반응 시작</td></tr>
+      <tr><td class="num">10–55분</td><td>① 시판 음료 (③의 5·15·30분 시료는 타이머에 맞춰 회수)</td></tr>
+      <tr><td class="num">55–75분</td><td>③ 60분 시료 회수, ③ 전체 베네딕트 반응·RGB 측정</td></tr>
+      <tr><td class="num">75–105분</td><td>② 조리 조건별 채소</td></tr>
+      <tr><td class="num">105–120분</td><td>결과 입력 확인, 세척, 폐액 처리</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="card"><h3>공통: 베네딕트 반응과 측정</h3><ol>
+    <li>시료 2 mL + 베네딕트 시약 2 mL를 시험관에 넣는다.</li>
+    <li>끓는 수조에서 정확히 3분 가열한다.</li>
+    <li>집게로 꺼내 시험관대에서 5분 식힌다.</li>
+    <li>살짝 흔들어 침전을 고르게 한 뒤, 흰 배경 앞 정해진 위치에서 촬영한다.</li>
+    <li>Color Grab으로 시험관 중앙 액체 부분을 3회 측정해 평균 R값과 색을 기록한다.</li>
+  </ol></div>
+
+  <div class="card"><h3>① 시판 음료 환원당 비교 <span class="tag">시험관 7개</span></h3><ol>
+    <li>희석: 콜라 0.5 mL + 증류수 9.5 mL(20배), 나머지 5종은 1 mL + 증류수 9 mL(10배).</li>
+    <li>음료 6종 + 대조군(증류수) 1개를 공통 절차대로 반응·측정한다.</li>
+    <li>표준 곡선으로 희석액 농도를 구하고 희석 배율을 곱해 원액 환원당(g/100 mL)을 계산한다.</li>
+    <li>라벨 당류와 비교한다.</li>
+  </ol></div>
+
+  <div class="card"><h3>② 조리 조건별 채소 환원당 <span class="tag">시험관 8개</span></h3><ol>
+    <li>공용으로 조리된 조건별 채소(생것, 삶기 10분, 삶기 25분, 에어프라이어 180°C 15분)를 받는다.</li>
+    <li>조건별 5.0 g을 강판에 갈고 증류수 10 mL를 넣어 1분간 저어 섞는다.</li>
+    <li>거름종이로 걸러 맑은 여액을 받는다. 탁하면 한 번 더 거른다.</li>
+    <li>여액 2 mL로 공통 절차를 수행한다.</li>
+    <li>여액 농도에 3을 곱해 채소 기준 환원당으로 환산한다.</li>
+  </ol></div>
+
+  <div class="card"><h3>③ 아밀레이스 소화 시뮬레이션 <span class="tag">시험관 7개</span></h3><ol>
+    <li>끓는 수조와 37°C 수조(온도계로 확인)를 준비한다.</li>
+    <li>물로 입안을 헹군 뒤 1분 후 타액 1 mL를 받아 증류수 9 mL와 섞는다(10배 희석).</li>
+    <li>1% 전분 용액 2 mL씩 시간별 시험관 5개(0·5·15·30·60분)와 대조군 A에 넣고 37°C에서 5분 예열한다.</li>
+    <li>0분 시험관은 먼저 끓는 수조에 1분 넣은 뒤 타액 희석액 0.5 mL를 넣는다.</li>
+    <li>나머지 4개에 타액 희석액 0.5 mL를 넣고 즉시 타이머를 시작한다.</li>
+    <li>5·15·30·60분에 해당 시험관을 꺼내 끓는 수조에 1분 넣어 효소를 불활성화한다.</li>
+    <li>대조군 A: 전분 2 mL + 증류수 0.5 mL. 대조군 B: 증류수 2 mL + 타액 희석액 0.5 mL. 60분 시험관과 같이 처리한다.</li>
+    <li>모두 식힌 뒤 베네딕트 시약 2 mL를 넣고 공통 절차로 측정한다.</li>
+  </ol></div>
+</section>
+
+<!-- 5 -->
+<section id="record">
+  <div class="sec-head"><span class="no">05</span><h2>결과 기록</h2></div>
+  <p class="note">모둠을 고르고 각 시험관의 색을 색상 선택 칸에서 맞추면 R값이 자동으로 채워집니다. Color Grab에서 읽은 R값이 다르면 숫자를 직접 고치면 됩니다. 입력한 값은 자동 저장되어 모든 부원에게 보입니다.</p>
+  <div class="groupbar" id="groupbar" role="group" aria-label="모둠 선택"></div>
+  <div class="status"><span class="pill" id="saveState">연결 중…</span>
+    <label class="toggle"><input type="checkbox" id="exampleToggle"> 예시 데이터로 미리보기 (저장되지 않음)</label></div>
+  <div id="rec"></div>
+</section>
+
+<!-- 6 -->
+<section id="analysis">
+  <div class="sec-head"><span class="no">06</span><h2>결과 해석</h2></div>
+  <div class="card"><h3>계산식</h3>
+    <div class="formula">표준 곡선: R = a × C + b  →  C(%) = (R − b) ÷ a</div>
+    <div class="formula">① 원액 환원당(g/100 mL) = C × 희석 배율   (1% = 1 g/100 mL)</div>
+    <div class="formula">② 채소 기준 환원당(%) = 여액 C × 3</div>
+    <div class="formula">③ 상대 분해율(%) = (C<sub>t</sub> − C<sub>0</sub>) ÷ (C<sub>60</sub> − C<sub>0</sub>) × 100</div>
+  </div>
+  <div class="card"><h3>해석 포인트</h3><ul>
+    <li><b>자당은 반응하지 않는다.</b> 콜라·오렌지주스·이온음료는 측정값이 라벨보다 낮은 것이 정상이다. 차이는 자당 비율의 근거가 된다.</li>
+    <li><b>우유</b>의 주된 당은 유당(환원당)이라 라벨과 가까울 수 있다. 단백질로 인한 탁도가 R값을 높일 수 있으므로 대조군과 비교한다.</li>
+    <li><b>무가당 음료</b>는 대조군과 비슷해야 한다. 차이가 크면 그 크기를 측정 오차의 기준으로 쓴다.</li>
+    <li><b>고구마</b>는 60–75°C 구간에서 β-아밀레이스가 활발해 가열 중 엿당이 생긴다. 천천히 가열되는 굽기에서 증가가 가장 클 가능성이 있다.</li>
+    <li><b>삶기 25분</b>이 10분보다 낮다면 당이 삶는 물로 빠져나간 효과로 해석할 수 있다.</li>
+    <li><b>③에서 생기는 당은 주로 엿당</b>이다. 포도당 표준 곡선으로 환산하면 환원력 차이로 절대값에 오차가 생기므로, 분해율은 상대값으로 해석한다.</li>
+    <li><b>표준 곡선 범위</b>를 벗어난 값(가장 진한 표준보다 붉은 시료)은 더 희석해 재측정한다. 적갈색 단계에서는 R값이 포화되거나 오히려 감소할 수 있다.</li>
+  </ul></div>
+  <div class="card"><h3>모둠 간 비교</h3><p class="note">결과 기록의 "전체 비교"에서 4모둠 값을 한 그래프로 볼 수 있습니다. 같은 시료에서 모둠 간 차이가 크면 촬영 조건, 가열 시간, 피펫 오차 중 어느 것이 원인인지 먼저 확인합니다.</p></div>
+</section>
+
+<!-- 7 -->
+<section id="worksheet">
+  <div class="sec-head"><span class="no">07</span><h2>학습지</h2></div>
+  <p class="note">답은 본인만 볼 수 있게 저장됩니다.</p>
+  <div class="card ws" id="ws"></div>
+</section>
+
+<!-- 8 -->
+<section id="further">
+  <div class="sec-head"><span class="no">08</span><h2>심화 탐구 방향</h2></div>
+  <div class="card">
+    <div class="topic"><span class="eyebrow">자당 분리 정량</span><h3>산 가수분해 전후 베네딕트 반응 비교를 이용한 시판 음료의 자당·환원당 함량 분리 정량 탐구</h3><p>음료를 묽은 염산으로 가열해 자당을 포도당+과당으로 분해한 뒤 다시 측정합니다. 전후 차이로 자당량을 구해 라벨값과의 차이를 설명합니다.</p></div>
+    <div class="topic"><span class="eyebrow">조리 온도</span><h3>RGB 색 분석을 이용한 가열 온도별 고구마 β-아밀레이스 활성 변화 탐구</h3><p>고구마 조각을 40·60·70·80·100°C 수조에서 같은 시간 가열해 환원당이 가장 많이 생기는 온도를 찾습니다. 효소 최적 온도와 실활 온도를 함께 확인합니다.</p></div>
+    <div class="topic"><span class="eyebrow">효소 속도론</span><h3>미카엘리스–멘텐 모델을 이용한 전분 농도별 타액 아밀레이스 초기 반응 속도 분석 탐구</h3><p>전분 농도(0.25–2%)를 바꿔 5분 반응량을 측정하고, 라인위버–버크 도표로 Km과 Vmax를 추정합니다. 실험 ③의 곡선을 수학적으로 해석하는 확장입니다.</p></div>
+    <div class="topic"><span class="eyebrow">약학 연계</span><h3>환원당 생성 억제율 비교를 이용한 녹차 카테킨의 α-아밀레이스 억제 효과 탐구</h3><p>당뇨병 치료제 아카보스의 작용 원리(탄수화물 분해 효소 억제)를 바탕으로, 녹차 추출액 농도별 아밀레이스 억제율을 측정합니다.</p></div>
+    <div class="topic"><span class="eyebrow">영양학 연계</span><h3>소화 시뮬레이션 환원당 생성 속도와 혈당지수(GI) 문헌값의 상관 분석 탐구</h3><p>밥, 식빵, 감자, 고구마 등 식품별 60분 소화 곡선을 측정해 문헌의 GI 값과 순위 상관을 비교합니다.</p></div>
+    <div class="topic"><span class="eyebrow">조건 의존성</span><h3>아이오딘–녹말 반응 색 변화를 이용한 pH별 타액 아밀레이스 활성 비교 탐구</h3><p>pH 4·5·6·7·8 완충액에서 전분 분해 속도를 측정해 위(산성)와 소장(약알칼리) 환경에서의 소화 차이를 설명합니다.</p></div>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="info">
+  <div class="sec-head"><span class="no">09</span><h2>준비물 및 추가 정보</h2></div>
+  <h3>시료·시약 (4모둠 전체)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>품목</th><th>수량</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>콜라, 오렌지주스, 이온음료</td><td class="num">각 30 mL</td><td>구입 시 라벨 성분표 촬영</td></tr>
+      <tr><td>우유, 두유, 무가당 음료</td><td class="num">각 30 mL</td><td>구입 시 라벨 성분표 촬영</td></tr>
+      <tr><td>감자, 고구마 (중간 크기)</td><td class="num">각 1개</td><td>조건당 모둠별 5 g × 4조건 × 4모둠 = 80 g</td></tr>
+      <tr><td>감자전분</td><td class="num">1 g (여유 5 g)</td><td>1% 전분 용액 100 mL</td></tr>
+      <tr><td>타액 또는 시판 아밀레이스</td><td class="num">모둠당 1 mL</td><td>시판 분말은 과학 실험 업체</td></tr>
+      <tr><td>베네딕트 시약</td><td class="num">200 mL</td><td>모둠당 22회 × 2 mL = 44 mL</td></tr>
+      <tr><td>증류수</td><td class="num">1 L</td><td>희석, 추출, 용액 제조</td></tr>
+    </tbody>
+  </table></div>
+  <h3>모둠별 기구 (× 4세트)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>품목</th><th>수량</th></tr></thead>
+    <tbody>
+      <tr><td>시험관 + 시험관대</td><td class="num">22개 이상 (①7 + ②8 + ③7)</td></tr>
+      <tr><td>피펫 또는 주사기</td><td class="num">1 mL, 5 mL 각 1</td></tr>
+      <tr><td>10 mL 눈금실린더</td><td class="num">1</td></tr>
+      <tr><td>비커 500 mL 이상 (끓는 수조, 37°C 수조)</td><td class="num">2</td></tr>
+      <tr><td>핫플레이트</td><td class="num">1–2</td></tr>
+      <tr><td>온도계, 시험관 집게, 타이머</td><td class="num">각 1</td></tr>
+      <tr><td>깔때기, 거름종이</td><td class="num">1, 10장</td></tr>
+      <tr><td>유성펜, 흰 배경지</td><td class="num">각 1</td></tr>
+      <tr><td>스마트폰 + Color Grab 앱</td><td class="num">1</td></tr>
+    </tbody>
+  </table></div>
+  <h3>공용 기구</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>품목</th><th>용도</th></tr></thead>
+    <tbody>
+      <tr><td>냄비, 조리용 핫플레이트</td><td>채소 삶기</td></tr>
+      <tr><td>에어프라이어</td><td>채소 굽기 180°C 15분</td></tr>
+      <tr><td>강판 또는 믹서기, 칼, 도마</td><td>손질, 추출</td></tr>
+      <tr><td>전자저울</td><td>채소 5 g, 전분 계량</td></tr>
+      <tr><td>보안경, 실험용 장갑</td><td>전원</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="grid2">
+    <div class="card"><h3>사전 준비 (담당자)</h3><ol>
+      <li><b>베네딕트 시약 200 mL</b>: 시트르산나트륨 이수화물 34.6 g + 탄산나트륨(무수) 20 g을 따뜻한 증류수 약 160 mL에 녹인다. 황산구리 오수화물 3.46 g을 증류수 약 20 mL에 녹여 저으면서 천천히 넣고 200 mL로 맞춘다.</li>
+      <li><b>1% 전분 용액</b>: 전분 1 g을 소량의 물에 개어 끓는 증류수에 넣고, 투명해질 때까지 저으며 가열한다. 식힌 뒤 100 mL로 맞춘다. 당일 제조.</li>
+      <li><b>채소 공용 조리</b>: 2 cm 정육면체로 썰어 4조건으로 한 번에 조리하고 라벨을 붙여 나눠 준다. 삶기는 물이 끓기 시작한 시점부터 잰다.</li>
+      <li><b>표준 곡선 확인</b>: 세션 2 표준 곡선이 "2 mL + 시약 2 mL, 3분 가열" 조건인지 확인한다. 다르면 표준 용액을 같은 조건으로 다시 측정한다.</li>
+    </ol></div>
+    <div class="card"><h3>RGB 측정 통일 기준</h3><ul>
+      <li>가열 후 5분 식힌 뒤, 흔들어 침전을 고르게 한 직후 촬영</li>
+      <li>흰 배경지, 실내 조명, 직사광선과 플래시 없음</li>
+      <li>시험관에서 20 cm, 정면 수평 (위치를 테이프로 표시)</li>
+      <li>시험관 중앙 액체를 3회 측정해 평균</li>
+      <li>한 사진에 대조군과 시료를 함께 담아 조명 차이 확인</li>
+    </ul></div>
+  </div>
+  <div class="card"><h3>안전 수칙</h3><ul>
+    <li>보안경과 장갑 착용. 베네딕트 시약의 황산구리는 피부·눈 자극성이 있다.</li>
+    <li>뜨거운 시험관은 집게로 다루고 입구를 사람 쪽으로 향하지 않는다.</li>
+    <li>핫플레이트·냄비·에어프라이어 사용 시 화상 주의, 사용 후 전원 차단.</li>
+    <li>타액은 본인 것만 다루고 사용한 시험관은 바로 세척한다.</li>
+    <li>실험에 쓴 음료와 채소는 먹지 않는다.</li>
+    <li>베네딕트 폐액은 싱크대가 아닌 지정 폐액통에 모은다.</li>
+  </ul></div>
+</section>
+<footer>IGNIS 화학동아리 · 실험 2 · 2026</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+var GROUPS=[{id:"g1",name:"1모둠",c:"--g1"},{id:"g2",name:"2모둠",c:"--g2"},{id:"g3",name:"3모둠",c:"--g3"},{id:"g4",name:"4모둠",c:"--g4"}];
+var STD=[{k:"s0",c:"0"},{k:"s1",c:"0.1"},{k:"s2",c:"0.25"},{k:"s3",c:"0.5"},{k:"s4",c:"1.0"}];
+var E1=[{k:"blank",n:"대조군 (증류수)",d:1,ctrl:true},{k:"cola",n:"콜라",d:20},{k:"oj",n:"오렌지주스",d:10},{k:"ion",n:"이온음료",d:10},{k:"milk",n:"우유",d:10},{k:"soy",n:"두유",d:10},{k:"zero",n:"무가당 음료",d:10}];
+var COND=[{k:"raw",n:"생것"},{k:"b10",n:"삶기 10분"},{k:"b25",n:"삶기 25분"},{k:"air",n:"굽기 15분"}];
+var VEG=[{k:"p",n:"감자"},{k:"s",n:"고구마"}];
+var E2=[];VEG.forEach(function(v){COND.forEach(function(c){E2.push({k:v.k+"_"+c.k,veg:v,cond:c})})});
+var E3=[{k:"ca",n:"대조군 A (전분만)",ctrl:true},{k:"cb",n:"대조군 B (타액만)",ctrl:true},{k:"t0",n:"0분",t:0},{k:"t5",n:"5분",t:5},{k:"t15",n:"15분",t:15},{k:"t30",n:"30분",t:30},{k:"t60",n:"60분",t:60}];
+
+// Benedict colour ramp for example data
+var RAMP=[[47,98,176],[63,138,110],[165,154,42],[207,122,36],[155,58,31]];
+function rampHex(f){f=Math.max(0,Math.min(1,f));var x=f*(RAMP.length-1),i=Math.min(RAMP.length-2,Math.floor(x)),t=x-i;
+  var c=RAMP[i].map(function(v,j){return Math.round(v+(RAMP[i+1][j]-v)*t)});return "#"+c.map(function(v){return v.toString(16).padStart(2,"0")}).join("")}
+var EXR={std_s0:62,std_s1:96,std_s2:140,std_s3:182,std_s4:226,
+  e1_blank:61,e1_cola:140,e1_oj:182,e1_ion:128,e1_milk:178,e1_soy:96,e1_zero:64,
+  e2_p_raw:70,e2_p_b10:76,e2_p_b25:72,e2_p_air:82,e2_s_raw:110,e2_s_b10:172,e2_s_b25:158,e2_s_air:198,
+  e3_ca:63,e3_cb:66,e3_t0:65,e3_t5:118,e3_t15:162,e3_t30:192,e3_t60:208};
+var EXL={e1_cola_label:"10.8",e1_oj_label:"10",e1_ion_label:"6",e1_milk_label:"4.8",e1_soy_label:"5",e1_zero_label:"0"};
+var EX={};Object.keys(EXR).forEach(function(k){EX[k+"_r"]=String(EXR[k]);EX[k+"_hex"]=rampHex((EXR[k]-60)/170)});Object.assign(EX,EXL);
+// example variation for other groups in compare view
+function exFor(gi){if(gi===0)return EX;var o={};Object.keys(EX).forEach(function(k){var v=EX[k];
+  if(/_r$/.test(k)&&!/^std/.test(k)){var n=+v+((gi*37+k.length*13)%17-8);o[k]=String(n)}else o[k]=v});return o}
+
+var state={},exists={},cur="g1",example=false,readOnly=false,db=null,mode="local";
+GROUPS.forEach(function(g){state[g.id]={};exists[g.id]=false});
+
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function hexOk(h){return typeof h==="string"&&/^#[0-9a-fA-F]{6}$/.test(h)}
+function num(v){if(v===undefined||v===null||v==="")return null;var n=parseFloat(String(v).replace(",","."));return isFinite(n)?n:null}
+function f(x,d){return x===null||!isFinite(x)?"–":x.toFixed(d===undefined?2:d)}
+function src(g){if(example){var gi=GROUPS.findIndex(function(x){return x.id===g});return exFor(gi)}return state[g]}
+function val(g,k){var s=src(g);return s[k]}
+
+function fit(g){var xs=[],ys=[];STD.forEach(function(s){var c=num(val(g,"std_"+s.k+"_c"));if(c===null)c=num(s.c);var r=num(val(g,"std_"+s.k+"_r"));if(c!==null&&r!==null){xs.push(c);ys.push(r)}});
+  if(xs.length<2)return null;var n=xs.length,mx=xs.reduce(function(a,b){return a+b})/n,my=ys.reduce(function(a,b){return a+b})/n,sxy=0,sxx=0,syy=0;
+  for(var i=0;i<n;i++){sxy+=(xs[i]-mx)*(ys[i]-my);sxx+=(xs[i]-mx)*(xs[i]-mx);syy+=(ys[i]-my)*(ys[i]-my)}
+  if(sxx===0)return null;var a=sxy/sxx,b=my-a*mx,r2=syy===0?1:(sxy*sxy)/(sxx*syy);return{a:a,b:b,r2:r2,xs:xs,ys:ys}}
+function conc(g,r,F){F=F||fit(g);if(!F||r===null||F.a===0)return null;return Math.max(0,(r-F.b)/F.a)}
+function rOf(g,pre){return num(val(g,pre+"_r"))}
+
+// ---------- UI build ----------
+var gb=document.getElementById("groupbar");
+GROUPS.concat([{id:"all",name:"전체 비교"}]).forEach(function(g){var b=document.createElement("button");b.type="button";b.className="gbtn";b.dataset.g=g.id;
+  if(g.c){var d=document.createElement("span");d.className="dot";d.style.background="var("+g.c+")";b.appendChild(d)}
+  b.appendChild(document.createTextNode(g.name));b.addEventListener("click",function(){cur=g.id;try{localStorage.setItem("ignis-e2-cur",cur)}catch(e){}build()});gb.appendChild(b)});
+try{var sv=localStorage.getItem("ignis-e2-cur");if(sv&&/^(g[1-4]|all)$/.test(sv))cur=sv}catch(e){}
+
+function rowInputs(pre,extra){var h='<td><input type="color" class="cpick" data-k="'+pre+'_hex" aria-label="시험관 색"></td>'+
+  '<td><input class="rec-input" inputmode="numeric" data-k="'+pre+'_r" aria-label="R값"></td>';return h+(extra||"")}
+
+function build(){
+  Array.prototype.forEach.call(gb.children,function(b){b.setAttribute("aria-pressed",String(b.dataset.g===cur))});
+  var rec=document.getElementById("rec");
+  if(cur==="all"){rec.innerHTML=compareHTML();renderCompare();return}
+  var h='';
+  // standard curve
+  h+='<div class="card"><h3>표준 곡선 (세션 2 조건과 동일하게)</h3><p class="note">농도를 알고 있는 포도당 표준 용액의 색과 R값을 입력합니다. 농도도 수정할 수 있습니다.</p>';
+  h+='<div class="tbl"><table><thead><tr><th>시험관</th><th>농도 (%)</th><th>색</th><th>R값</th></tr></thead><tbody>';
+  STD.forEach(function(s){h+='<tr><td><span class="tube"><i data-tube="std_'+s.k+'"></i></span></td><td><input class="rec-input" inputmode="decimal" data-k="std_'+s.k+'_c" placeholder="'+s.c+'" aria-label="표준 농도"></td>'+rowInputs("std_"+s.k)+'</tr>'});
+  h+='</tbody></table></div><p class="fitline mono" id="fitline"></p><div id="chartStd"></div></div>';
+  // E1
+  h+='<div class="card"><h3>① 시판 음료</h3><div class="tubes" id="tubes1"></div>';
+  h+='<div class="tbl"><table><thead><tr><th>음료</th><th>배율</th><th>색</th><th>R값</th><th>희석액 C (%)</th><th>원액 (g/100 mL)</th><th>라벨 당류 (g/100 mL)</th><th>측정/라벨</th></tr></thead><tbody>';
+  E1.forEach(function(e){h+='<tr><td>'+e.n+'</td><td class="num">'+(e.ctrl?"–":e.d+"배")+'</td>'+rowInputs("e1_"+e.k)+
+    '<td class="num r" data-o="e1_'+e.k+'_c"></td><td class="num r" data-o="e1_'+e.k+'_o"></td><td>'+(e.ctrl?"–":'<input class="rec-input" inputmode="decimal" data-k="e1_'+e.k+'_label" aria-label="라벨 당류">')+'</td><td class="num r" data-o="e1_'+e.k+'_p"></td></tr>'});
+  h+='</tbody></table></div><div class="legend"><span><i style="background:var(--muted)"></i>막대: 측정 환원당 (시험관 색)</span><span><i style="background:var(--copper)"></i>세로선: 라벨 당류</span></div><div id="chart1"></div></div>';
+  // E2
+  h+='<div class="card"><h3>② 조리 조건별 채소</h3><div class="tubes" id="tubes2"></div>';
+  h+='<div class="tbl"><table><thead><tr><th>채소</th><th>조리 조건</th><th>색</th><th>R값</th><th>여액 C (%)</th><th>채소 기준 (%)</th><th>생것 대비</th></tr></thead><tbody>';
+  E2.forEach(function(e){h+='<tr><td>'+e.veg.n+'</td><td>'+e.cond.n+'</td>'+rowInputs("e2_"+e.k)+'<td class="num r" data-o="e2_'+e.k+'_c"></td><td class="num r" data-o="e2_'+e.k+'_v"></td><td class="num r" data-o="e2_'+e.k+'_d"></td></tr>'});
+  h+='</tbody></table></div><div id="chart2"></div></div>';
+  // E3
+  h+='<div class="card"><h3>③ 소화 시뮬레이션</h3><div class="tubes" id="tubes3"></div>';
+  h+='<div class="tbl"><table><thead><tr><th>시료</th><th>색</th><th>R값</th><th>환원당 C (%)</th><th>상대 분해율 (%)</th></tr></thead><tbody>';
+  E3.forEach(function(e){h+='<tr><td>'+e.n+'</td>'+rowInputs("e3_"+e.k)+'<td class="num r" data-o="e3_'+e.k+'_c"></td><td class="num r" data-o="e3_'+e.k+'_p"></td></tr>'});
+  h+='</tbody></table></div><div class="legend"><span><i style="background:var(--accent)"></i>시간별 환원당</span><span><i style="background:var(--muted)"></i>점선: 대조군 A·B</span></div><div id="chart3"></div></div>';
+  rec.innerHTML=h;
+  // tubes
+  fillTubes("tubes1",E1.map(function(e){return{k:"e1_"+e.k,n:e.ctrl?"대조":e.n}}));
+  fillTubes("tubes2",E2.map(function(e){return{k:"e2_"+e.k,n:e.veg.n+" "+e.cond.n}}));
+  fillTubes("tubes3",E3.map(function(e){return{k:"e3_"+e.k,n:e.ctrl?(e.k==="ca"?"대조 A":"대조 B"):e.n}}));
+  rec.querySelectorAll("[data-k]").forEach(function(el){el.addEventListener("input",onInput)});
+  syncInputs();derive();
+}
+function fillTubes(id,list){var w=document.getElementById(id);list.forEach(function(t){var fg=document.createElement("figure");
+  fg.innerHTML='<span class="tube big"><i data-tube="'+t.k+'"></i></span><figcaption></figcaption>';fg.querySelector("figcaption").textContent=t.n;w.appendChild(fg)})}
+
+function syncInputs(){var rec=document.getElementById("rec");var dis=example||readOnly;
+  rec.querySelectorAll("[data-k]").forEach(function(el){var k=el.dataset.k,v=val(cur,k);el.disabled=dis;
+    if(el===document.activeElement&&!example)return;
+    if(el.type==="color"){el.value=hexOk(v)?v:"#c9d2dc"}else{el.value=v===undefined||v===null?"":String(v)}})}
+
+function onInput(e){if(example||readOnly)return;var el=e.target,k=el.dataset.k,s=state[cur],ch={};
+  if(el.type==="color"){s[k]=el.value;ch[k]=el.value;var rk=k.replace(/_hex$/,"_r"),r=String(parseInt(el.value.slice(1,3),16));s[rk]=r;ch[rk]=r;
+    var ri=document.querySelector('[data-k="'+rk+'"]');if(ri)ri.value=r}
+  else{s[k]=el.value;ch[k]=el.value}
+  queue(cur,ch);derive()}
+
+function setOut(k,t){var el=document.querySelector('[data-o="'+k+'"]');if(el)el.textContent=t}
+function paintTube(k){var h=val(cur,k+"_hex");document.querySelectorAll('[data-tube="'+k+'"]').forEach(function(i){i.style.background=hexOk(h)?h:"transparent"})}
+
+function derive(){if(cur==="all"){renderCompare();return}
+  var g=cur,F=fit(g);
+  document.getElementById("fitline").textContent=F?("R = "+f(F.a,1)+" × C + "+f(F.b,1)+"    R² = "+f(F.r2,3)+(F.r2<0.95?"  (직선성이 낮음: 표준 용액 재측정 권장)":"")):"표준 용액 2개 이상의 R값을 입력하면 회귀식이 계산됩니다.";
+  STD.forEach(function(s){paintTube("std_"+s.k)});
+  document.getElementById("chartStd").innerHTML=chartStd(g,F);
+  E1.forEach(function(e){var p="e1_"+e.k;paintTube(p);var c=conc(g,rOf(g,p),F);setOut(p+"_c",f(c));var o=c===null?null:c*e.d;setOut(p+"_o",e.ctrl?"–":f(o,1));
+    var L=num(val(g,p+"_label"));setOut(p+"_p",e.ctrl?"–":(o!==null&&L?f(o/L*100,0)+"%":"–"))});
+  var raw={};E2.forEach(function(e){var p="e2_"+e.k;paintTube(p);var c=conc(g,rOf(g,p),F);setOut(p+"_c",f(c));var v=c===null?null:c*3;setOut(p+"_v",f(v));
+    if(e.cond.k==="raw")raw[e.veg.k]=v;var base=raw[e.veg.k];setOut(p+"_d",e.cond.k==="raw"?"기준":(v!==null&&base!==null&&base!==undefined?((v-base>=0?"+":"")+f(v-base)+"%p"):"–"))});
+  var c0=conc(g,rOf(g,"e3_t0"),F),c60=conc(g,rOf(g,"e3_t60"),F);
+  E3.forEach(function(e){var p="e3_"+e.k;paintTube(p);var c=conc(g,rOf(g,p),F);setOut(p+"_c",f(c));
+    var rel=(e.ctrl||c===null||c0===null||c60===null||c60-c0<=0)?null:(c-c0)/(c60-c0)*100;setOut(p+"_p",e.ctrl?"–":f(rel,0))});
+  document.getElementById("chart1").innerHTML=chart1(g,F);
+  document.getElementById("chart2").innerHTML=chart2(g,F);
+  document.getElementById("chart3").innerHTML=chart3(g,F);
+}
+
+// ---------- charts ----------
+function niceMax(m){if(!(m>0))return 1;var p=Math.pow(10,Math.floor(Math.log10(m))),n=m/p;return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p}
+function ticks(max,n){var out=[];for(var i=0;i<=n;i++)out.push(max*i/n);return out}
+function tfmt(v){return Math.abs(v)<10?(+v.toFixed(2)).toString():Math.round(v).toString()}
+var EMPTY='<div class="empty">값을 입력하면 그래프가 그려집니다.</div>';
+
+function chartStd(g,F){if(!F)return "";var W=640,H=200,L=48,R=16,T=12,B=34,xm=niceMax(Math.max.apply(null,F.xs)),ym=255;
+  var X=function(v){return L+(W-L-R)*v/xm},Y=function(v){return T+(H-T-B)*(1-v/ym)};var s='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="표준 곡선">';
+  [0,64,128,192,255].forEach(function(t){s+='<line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(t)+'" y2="'+Y(t)+'"/><text x="'+(L-6)+'" y="'+(Y(t)+4)+'" text-anchor="end">'+t+'</text>'});
+  ticks(xm,4).forEach(function(t){s+='<text x="'+X(t)+'" y="'+(H-14)+'" text-anchor="middle">'+tfmt(t)+'</text>'});
+  s+='<text x="'+(W-R)+'" y="'+(H-1)+'" text-anchor="end">포도당 농도 C (%)</text>';
+  var y0=F.b,y1=F.a*xm+F.b;s+='<line x1="'+X(0)+'" y1="'+Y(Math.max(0,Math.min(255,y0)))+'" x2="'+X(Math.min(xm,(Math.min(255,Math.max(0,y1))-F.b)/F.a))+'" y2="'+Y(Math.max(0,Math.min(255,y1)))+'" stroke="'+css("--accent")+'" stroke-width="1.5" stroke-dasharray="5 4"/>';
+  STD.forEach(function(st){var c=num(val(g,"std_"+st.k+"_c"));if(c===null)c=num(st.c);var r=rOf(g,"std_"+st.k);if(r===null)return;var h=val(g,"std_"+st.k+"_hex");
+    s+='<circle cx="'+X(c)+'" cy="'+Y(r)+'" r="6" fill="'+(hexOk(h)?h:css("--muted"))+'" stroke="'+css("--surface")+'" stroke-width="1.5"/>'});
+  return s+'</svg>'}
+
+function chart1(g,F){var rows=E1.filter(function(e){return!e.ctrl}).map(function(e){var p="e1_"+e.k,c=conc(g,rOf(g,p),F);return{n:e.n,o:c===null?null:c*e.d,L:num(val(g,p+"_label")),h:val(g,p+"_hex")}});
+  if(!rows.some(function(r){return r.o!==null||r.L!==null}))return EMPTY;
+  var W=640,rh=34,T=10,B=34,L=96,R=40,H=T+B+rh*rows.length,mx=niceMax(Math.max.apply(null,rows.map(function(r){return Math.max(r.o||0,r.L||0)}).concat([1])));
+  var X=function(v){return L+(W-L-R)*v/mx};var s='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="음료별 측정 환원당과 라벨 당류">';
+  ticks(mx,4).forEach(function(t){s+='<line class="grid" x1="'+X(t)+'" x2="'+X(t)+'" y1="'+T+'" y2="'+(H-B)+'"/><text x="'+X(t)+'" y="'+(H-B+16)+'" text-anchor="middle">'+tfmt(t)+'</text>'});
+  s+='<text x="'+(W-R)+'" y="'+(H-2)+'" text-anchor="end">g/100 mL</text>';
+  rows.forEach(function(r,i){var y=T+i*rh;s+='<text x="'+(L-8)+'" y="'+(y+rh/2+4)+'" text-anchor="end">'+r.n+'</text>';
+    if(r.o!==null){s+='<rect x="'+L+'" y="'+(y+8)+'" width="'+Math.max(1,X(r.o)-L)+'" height="'+(rh-16)+'" rx="3" fill="'+(hexOk(r.h)?r.h:css("--muted"))+'"/><text class="val" x="'+(X(r.o)+4)+'" y="'+(y+rh/2+4)+'">'+f(r.o,1)+'</text>'}
+    if(r.L!==null){s+='<line x1="'+X(r.L)+'" x2="'+X(r.L)+'" y1="'+(y+3)+'" y2="'+(y+rh-3)+'" stroke="'+css("--copper")+'" stroke-width="2.5"/>'}});
+  return s+'</svg>'}
+
+function chart2(g,F){var vals=E2.map(function(e){var c=conc(g,rOf(g,"e2_"+e.k),F);return{e:e,v:c===null?null:c*3,h:val(g,"e2_"+e.k+"_hex")}});
+  if(!vals.some(function(v){return v.v!==null}))return EMPTY;
+  var W=640,H=230,T=16,B=50,L=40,gap=24,pw=(W-L-gap-8)/2,mx=niceMax(Math.max.apply(null,vals.map(function(v){return v.v||0}).concat([0.1])));
+  var Y=function(v){return T+(H-T-B)*(1-v/mx)};var s='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="조리 조건별 채소 환원당">';
+  ticks(mx,4).forEach(function(t){s+='<line class="grid" x1="'+L+'" x2="'+(W-8)+'" y1="'+Y(t)+'" y2="'+Y(t)+'"/><text x="'+(L-6)+'" y="'+(Y(t)+4)+'" text-anchor="end">'+tfmt(t)+'</text>'});
+  VEG.forEach(function(veg,vi){var x0=L+vi*(pw+gap),bw=pw/4;
+    s+='<text x="'+(x0+pw/2)+'" y="'+(H-6)+'" text-anchor="middle" style="fill:var(--ink);font-weight:700">'+veg.n+'</text>';
+    vals.filter(function(v){return v.e.veg.k===veg.k}).forEach(function(v,i){var cx=x0+i*bw+bw/2;
+      s+='<text x="'+cx+'" y="'+(H-B+16)+'" text-anchor="middle" style="font-size:11px">'+v.e.cond.n+'</text>';
+      if(v.v!==null){s+='<rect x="'+(cx-bw*0.32)+'" y="'+Y(v.v)+'" width="'+(bw*0.64)+'" height="'+Math.max(1,Y(0)-Y(v.v))+'" rx="3" fill="'+(hexOk(v.h)?v.h:css("--muted"))+'"/><text class="val" x="'+cx+'" y="'+(Y(v.v)-5)+'" text-anchor="middle">'+f(v.v)+'</text>'}})});
+  s+='<text x="'+(L)+'" y="'+(T-4)+'" >%</text>';return s+'</svg>'}
+
+function lineSeries(g,F){return E3.filter(function(e){return!e.ctrl}).map(function(e){var c=conc(g,rOf(g,"e3_"+e.k),F);return{t:e.t,c:c,h:val(g,"e3_"+e.k+"_hex")}})}
+function chart3(g,F){var pts=lineSeries(g,F),ca=conc(g,rOf(g,"e3_ca"),F),cb=conc(g,rOf(g,"e3_cb"),F);
+  if(!pts.some(function(p){return p.c!==null}))return EMPTY;
+  var W=640,H=230,T=14,B=36,L=44,R=16,mx=niceMax(Math.max.apply(null,pts.map(function(p){return p.c||0}).concat([ca||0,cb||0,0.1])));
+  var X=function(t){return L+(W-L-R)*t/60},Y=function(v){return T+(H-T-B)*(1-v/mx)};var s='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="반응 시간별 환원당">';
+  ticks(mx,4).forEach(function(t){s+='<line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(t)+'" y2="'+Y(t)+'"/><text x="'+(L-6)+'" y="'+(Y(t)+4)+'" text-anchor="end">'+tfmt(t)+'</text>'});
+  [0,5,15,30,60].forEach(function(t){s+='<text x="'+X(t)+'" y="'+(H-B+16)+'" text-anchor="middle">'+t+'</text>'});
+  s+='<text x="'+(W-R)+'" y="'+(H-2)+'" text-anchor="end">반응 시간 (분)</text><text x="'+L+'" y="'+(T-3)+'">C (%)</text>';
+  [[ca,"A"],[cb,"B"]].forEach(function(q){if(q[0]!==null)s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(q[0])+'" y2="'+Y(q[0])+'" stroke="'+css("--muted")+'" stroke-dasharray="3 4"/><text x="'+(W-R-2)+'" y="'+(Y(q[0])-4)+'" text-anchor="end">대조 '+q[1]+'</text>'});
+  var d=pts.filter(function(p){return p.c!==null}).map(function(p,i){return(i?"L":"M")+X(p.t)+" "+Y(p.c)}).join(" ");
+  s+='<path d="'+d+'" fill="none" stroke="'+css("--accent")+'" stroke-width="2"/>';
+  pts.forEach(function(p){if(p.c!==null)s+='<circle cx="'+X(p.t)+'" cy="'+Y(p.c)+'" r="6.5" fill="'+(hexOk(p.h)?p.h:css("--accent"))+'" stroke="'+css("--surface")+'" stroke-width="2"/><text class="val" x="'+X(p.t)+'" y="'+(Y(p.c)-11)+'" text-anchor="middle">'+f(p.c)+'</text>'});
+  return s+'</svg>'}
+
+// ---------- compare ----------
+function compareHTML(){var lg='<div class="legend">'+GROUPS.map(function(g){return'<span><i style="background:var('+g.c+')"></i>'+g.name+'</span>'}).join("")+'</div>';
+  return '<div class="card"><h3>① 시판 음료: 원액 환원당 (g/100 mL)</h3>'+lg+'<div id="cmp1"></div><p class="note">갈색 세로선은 라벨 당류(입력한 모둠 기준).</p></div>'+
+   '<div class="card"><h3>② 채소 기준 환원당 (%)</h3>'+lg+'<div id="cmp2"></div></div>'+
+   '<div class="card"><h3>③ 반응 시간별 환원당 (%)</h3>'+lg+'<div id="cmp3"></div></div>'}
+function dotPlot(rows,unit,label){var any=rows.some(function(r){return r.v.some(function(x){return x!==null})});if(!any)return EMPTY;
+  var W=640,rh=30,T=8,B=34,L=118,R=20,H=T+B+rh*rows.length,mx=niceMax(Math.max.apply(null,rows.map(function(r){return Math.max.apply(null,r.v.map(function(x){return x||0}).concat([r.L||0]))}).concat([0.1])));
+  var X=function(v){return L+(W-L-R)*v/mx};var s='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+label+'">';
+  ticks(mx,4).forEach(function(t){s+='<line class="grid" x1="'+X(t)+'" x2="'+X(t)+'" y1="'+T+'" y2="'+(H-B)+'"/><text x="'+X(t)+'" y="'+(H-B+16)+'" text-anchor="middle">'+tfmt(t)+'</text>'});
+  s+='<text x="'+(W-R)+'" y="'+(H-2)+'" text-anchor="end">'+unit+'</text>';
+  rows.forEach(function(r,i){var y=T+i*rh+rh/2;s+='<line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke-dasharray="2 4"/><text x="'+(L-8)+'" y="'+(y+4)+'" text-anchor="end">'+r.n+'</text>';
+    if(r.L!==null&&r.L!==undefined)s+='<line x1="'+X(r.L)+'" x2="'+X(r.L)+'" y1="'+(y-11)+'" y2="'+(y+11)+'" stroke="'+css("--copper")+'" stroke-width="2.5"/>';
+    r.v.forEach(function(x,gi){if(x!==null)s+='<circle cx="'+X(x)+'" cy="'+(y+(gi-1.5)*3)+'" r="5.5" fill="'+css(GROUPS[gi].c)+'" fill-opacity="0.9" stroke="'+css("--surface")+'" stroke-width="1.2"/>'})});
+  return s+'</svg>'}
+function renderCompare(){var Fs=GROUPS.map(function(g){return fit(g.id)});
+  var r1=E1.filter(function(e){return!e.ctrl}).map(function(e){var L=null;GROUPS.forEach(function(g){var l=num(val(g.id,"e1_"+e.k+"_label"));if(L===null&&l!==null)L=l});
+    return{n:e.n,L:L,v:GROUPS.map(function(g,gi){var c=conc(g.id,rOf(g.id,"e1_"+e.k),Fs[gi]);return c===null?null:c*e.d})}});
+  var r2=E2.map(function(e){return{n:e.veg.n+" · "+e.cond.n,v:GROUPS.map(function(g,gi){var c=conc(g.id,rOf(g.id,"e2_"+e.k),Fs[gi]);return c===null?null:c*3})}});
+  var c1=document.getElementById("cmp1");if(!c1)return;c1.innerHTML=dotPlot(r1,"g/100 mL","모둠별 음료 환원당");
+  document.getElementById("cmp2").innerHTML=dotPlot(r2,"%","모둠별 채소 환원당");
+  // lines
+  var series=GROUPS.map(function(g,gi){return lineSeries(g.id,Fs[gi])});var all=[];series.forEach(function(s){s.forEach(function(p){if(p.c!==null)all.push(p.c)})});
+  if(!all.length){document.getElementById("cmp3").innerHTML=EMPTY;return}
+  var W=640,H=230,T=14,B=36,L=44,R=16,mx=niceMax(Math.max.apply(null,all.concat([0.1])));var X=function(t){return L+(W-L-R)*t/60},Y=function(v){return T+(H-T-B)*(1-v/mx)};
+  var s='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="모둠별 소화 곡선">';
+  ticks(mx,4).forEach(function(t){s+='<line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(t)+'" y2="'+Y(t)+'"/><text x="'+(L-6)+'" y="'+(Y(t)+4)+'" text-anchor="end">'+tfmt(t)+'</text>'});
+  [0,5,15,30,60].forEach(function(t){s+='<text x="'+X(t)+'" y="'+(H-B+16)+'" text-anchor="middle">'+t+'</text>'});s+='<text x="'+(W-R)+'" y="'+(H-2)+'" text-anchor="end">반응 시간 (분)</text>';
+  series.forEach(function(ser,gi){var col=css(GROUPS[gi].c),pts=ser.filter(function(p){return p.c!==null});if(!pts.length)return;
+    s+='<path d="'+pts.map(function(p,i){return(i?"L":"M")+X(p.t)+" "+Y(p.c)}).join(" ")+'" fill="none" stroke="'+col+'" stroke-width="2"/>';
+    pts.forEach(function(p){s+='<circle cx="'+X(p.t)+'" cy="'+Y(p.c)+'" r="4" fill="'+col+'"/>'})});
+  document.getElementById("cmp3").innerHTML=s+'</svg>'}
+
+// ---------- storage ----------
+var pend={},timers={},writing={};
+function setSave(t){document.getElementById("saveState").textContent=t}
+function queue(g,ch){pend[g]=Object.assign(pend[g]||{},ch);setSave("저장 중…");clearTimeout(timers[g]);timers[g]=setTimeout(function(){flush(g)},700)}
+function flush(g){if(writing[g]){timers[g]=setTimeout(function(){flush(g)},400);return}var ch=pend[g];if(!ch)return;pend[g]=null;
+  if(mode!=="db"){try{localStorage.setItem("ignis-e2-"+g,JSON.stringify(state[g]))}catch(e){}setSave("이 기기에 저장됨");return}
+  writing[g]=true;var ref=db.doc("groups/"+g);
+  var p=exists[g]?ref.update({v:ch}):ref.set({v:Object.assign({},state[g])});
+  p.then(function(){exists[g]=true;setSave("저장됨 · 모든 부원에게 공유")}).catch(function(e){
+    if(e&&e.code==="invalid_argument"){readOnly=true;setSave("보기 전용: 기록 권한이 없습니다");syncInputs()}
+    else{pend[g]=Object.assign(ch,pend[g]||{});setSave("저장 실패: 잠시 후 다시 시도합니다");setTimeout(function(){flush(g)},3000)}
+  }).then(function(){writing[g]=false})}
+
+function loadLocal(){GROUPS.forEach(function(g){try{var s=localStorage.getItem("ignis-e2-"+g.id);if(s){var o=JSON.parse(s);if(o&&typeof o==="object")state[g.id]=o}}catch(e){}})}
+
+document.getElementById("exampleToggle").addEventListener("change",function(e){example=e.target.checked;
+  if(cur==="all")renderCompare();else{syncInputs();derive()}});
+
+// worksheet
+var WS=["표준 곡선의 R²은 얼마였는가? 직선성이 낮았다면 그 이유로 무엇을 생각할 수 있는가?",
+ "콜라·오렌지주스의 측정 환원당이 라벨 당류보다 낮게 나온 이유를 자당의 구조(글리코사이드 결합)로 설명하시오.",
+ "우유와 두유의 결과 차이를 각 음료의 주된 당 종류로 설명하시오.",
+ "고구마와 감자 중 조리 후 환원당 변화가 더 큰 쪽은 어디였고, 그 원인을 효소 관점에서 설명하시오.",
+ "삶기 10분과 25분의 결과를 비교하고, 가열 시간과 당 용출의 관계를 설명하시오.",
+ "③에서 0분 시험관을 먼저 끓인 이유와, 대조군 A·B가 각각 무엇을 확인하기 위한 것인지 쓰시오.",
+ "③의 곡선이 시간이 지날수록 완만해진다면 그 이유는 무엇인가?",
+ "포도당 표준 곡선으로 엿당 농도를 환산할 때 생기는 오차의 방향(과대/과소)을 추론하시오.",
+ "당뇨병 치료제 아카보스는 탄수화물 분해 효소를 억제한다. 실험 ③에 아카보스를 넣는다면 그래프가 어떻게 바뀔지 예측하시오.",
+ "모둠 간 결과 차이를 줄이기 위해 다음 실험에서 바꿀 절차 한 가지를 제안하시오."];
+var wsState={},wsRef=null,wsTimer=null,wsWriting=false;
+(function(){var w=document.getElementById("ws");WS.forEach(function(q,i){var l=document.createElement("label");l.setAttribute("for","ws_q"+(i+1));
+  var t=document.createElement("span");t.textContent=(i+1)+". "+q;var ta=document.createElement("textarea");ta.id="ws_q"+(i+1);ta.dataset.q="q"+(i+1);ta.placeholder="답을 적어 보세요";
+  ta.addEventListener("input",function(){wsState[ta.dataset.q]=ta.value;saveWs()});l.appendChild(t);l.appendChild(ta);w.appendChild(l)})})();
+function fillWs(){WS.forEach(function(_,i){var ta=document.getElementById("ws_q"+(i+1));if(ta!==document.activeElement)ta.value=wsState["q"+(i+1)]||""})}
+function saveWs(){clearTimeout(wsTimer);wsTimer=setTimeout(function(){
+  if(!wsRef){try{localStorage.setItem("ignis-e2-ws",JSON.stringify(wsState))}catch(e){}return}
+  if(wsWriting){saveWs();return}wsWriting=true;wsRef.set(Object.assign({},wsState)).catch(function(){try{localStorage.setItem("ignis-e2-ws",JSON.stringify(wsState))}catch(e){}}).then(function(){wsWriting=false})},800)}
+try{var w0=localStorage.getItem("ignis-e2-ws");if(w0){var o=JSON.parse(w0);if(o&&typeof o==="object")wsState=o}}catch(e){}
+fillWs();
+
+// ---------- boot ----------
+loadLocal();build();setSave("이 기기에 저장됨");
+function connect(){if(!window.claude||!window.claude.use){setSave("공유 저장소 없음: 이 기기에만 저장됩니다");return}
+  Promise.all([window.claude.use("db"),window.claude.use("user")]).then(function(r){db=r[0];var user=r[1];
+    if(!db){setSave("공유 저장소에 연결되지 않아 이 기기에만 저장됩니다");return}
+    mode="db";GROUPS.forEach(function(g){state[g.id]={}});setSave("불러오는 중…");
+    if(user&&user.can){Promise.resolve(user.can("data.write")).then(function(c){if(c===false){readOnly=true;setSave("보기 전용: 기록하려면 공유 권한이 '참여자' 이상이어야 합니다");syncInputs()}}).catch(function(){})}
+    GROUPS.forEach(function(g){db.doc("groups/"+g.id).onSnapshot(function(snap){exists[g.id]=snap.exists;var d=snap.exists&&snap.data()?snap.data().v:null;
+      var mine=pend[g.id]||{};state[g.id]=Object.assign({},(d&&typeof d==="object")?d:{},mine);
+      if(!readOnly&&!writing[g.id]&&!pend[g.id])setSave("저장됨 · 모든 부원에게 공유");
+      if(cur===g.id){syncInputs();derive()}else if(cur==="all")renderCompare()},function(){setSave("연결이 끊겼습니다. 새로고침해 주세요")})});
+    if(user&&user.id){Promise.resolve(user.id()).then(function(uid){if(!uid)return;wsRef=db.doc("data/users/"+uid+"/worksheet");
+      wsRef.get().then(function(s){if(s.exists){wsState=Object.assign({},s.data()||{});fillWs()}}).catch(function(){})}).catch(function(){})}
+  }).catch(function(){setSave("공유 저장소에 연결되지 않아 이 기기에만 저장됩니다")})}
+connect();
+})();
+</script>
+
+</body>
+</html>
